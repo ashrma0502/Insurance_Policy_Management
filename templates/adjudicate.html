@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Claim Adjudication - {{ claim.claim_number }} - Insure</title>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+  <div id="spinner"
+    class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
+    <div class="spinner-grow text-primary" role="status"></div>
+  </div>
+
+  <div class="container py-5">
+    <div class="mb-4">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          {% if session.role == 'admin' %}
+          <li class="breadcrumb-item"><a href="/admin/dashboard">Admin Dashboard</a></li>
+          {% else %}
+          <li class="breadcrumb-item"><a href="/agent/dashboard">Agent Dashboard</a></li>
+          {% endif %}
+          <li class="breadcrumb-item active" aria-current="page">Claim Adjudication</li>
+        </ol>
+      </nav>
+    </div>
+
+    <div class="row g-4">
+      <!-- Claim Summary Panel -->
+      <div class="col-lg-7">
+        <div class="card card-claim p-4 mb-4">
+          <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+            <div>
+              <span class="text-muted small">CLAIM WORKFLOW PORTAL</span>
+              <h3 class="text-primary mb-0">{{ claim.claim_number }}</h3>
+            </div>
+            {% set badge = {
+            'submitted': 'bg-warning text-dark',
+            'under_review': 'bg-info text-dark',
+            'approved': 'bg-success',
+            'rejected': 'bg-danger',
+            'paid': 'bg-success'
+            } %}
+            <span class="badge {{ badge.get(claim.status, 'bg-secondary') }} fs-6 px-3 py-2">{{ claim.status }}</span>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <span class="text-muted small d-block">Policyholder</span>
+              <strong>{{ claim.holder_name }}</strong>
+            </div>
+            <div class="col-md-6">
+              <span class="text-muted small d-block">Policy Link</span>
+              <a href="/policy-detail?id={{ claim.policy_id }}">{{ claim.policy_number }} ({{ claim.policy_type }})</a>
+            </div>
+            <div class="col-md-6">
+              <span class="text-muted small d-block">Incident Date</span>
+              <span>{{ claim.incident_date }}</span>
+            </div>
+            <div class="col-md-6">
+              <span class="text-muted small d-block">Submitted Date</span>
+              <span>{{ claim.submitted_at.strftime('%Y-%m-%d') }}</span>
+            </div>
+            <div class="col-12">
+              <span class="text-muted small d-block">Incident Description</span>
+              <p class="border rounded p-3 bg-light">{{ claim.description }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Event Timeline -->
+        <div class="card card-claim p-4">
+          <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-clock-history text-primary me-2"></i>Claim Event Timeline
+            (Audit Log)</h5>
+          <div class="event-timeline">
+            {% for ev in events %}
+            {% set color = 'status-green' if ev.to_status == 'approved' else ('status-red' if ev.to_status == 'rejected'
+            else '') %}
+            <div class="event-item {{ color }}">
+              <span class="text-muted small d-block">{{ ev.created_at.strftime('%Y-%m-%d %H:%M') }} | Actor: {{
+                ev.actor_name }}</span>
+              <strong>Status: {{ ev.from_status or 'NULL' }} &rarr; {{ ev.to_status }}</strong>
+              <p class="mb-0 small text-muted">{{ ev.note }}</p>
+            </div>
+            {% else %}
+            <p class="text-muted">No events recorded yet.</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Adjudication Actions Panel -->
+      <div class="col-lg-5">
+        <div class="card card-claim p-4 bg-light">
+          <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-hammer text-primary me-2"></i>Adjudication Verdict</h5>
+
+          <form method="POST" action="/adjudicate/save">
+            <input type="hidden" name="claim_id" value="{{ claim.id }}">
+
+            <div class="mb-3">
+              <label class="form-label">Claim Request Amount</label>
+              <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <input type="text" class="form-control" value="{{ " %.2f"|format(claim.amount_requested) }}" disabled />
+              </div>
+              <div class="form-text">Policyholder's requested payout limit.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Approved Payout Amount (₹)</label>
+              <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <input type="number" step="0.01" min="0.01" class="form-control" id="approvedAmountInput"
+                  name="approved_amount" data-max="{{ claim.amount_requested }}" placeholder="Enter approved amount..."
+                  oninput="validateAmount(parseFloat(this.getAttribute('data-max')))" />
+              </div>
+              <div id="amountWarning" class="alert alert-danger d-none mt-2 small p-2">
+                <i class="bi bi-exclamation-circle-fill me-1"></i><strong>Validation Error:</strong>
+                Approved amount cannot exceed ₹{{ "%.2f"|format(claim.amount_requested) }}.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Select Adjudication Action</label>
+              <select class="form-select" id="adjudicateAction" name="action" onchange="toggleReasonField()" required>
+                {% if claim.status == 'submitted' %}
+                <option value="under_review" selected>Mark Under Review</option>
+                <option value="approved">Approve Claim &amp; Release Payout</option>
+                <option value="rejected">Reject Claim</option>
+                {% elif claim.status == 'under_review' %}
+                <option value="approved" selected>Approve Claim &amp; Release Payout</option>
+                <option value="rejected">Reject Claim</option>
+                {% elif claim.status == 'approved' %}
+                <option value="paid" selected>Mark as Paid / Disbursed</option>
+                {% else %}
+                <option value="{{ claim.status }}" selected>{{ claim.status | capitalize }} (final)</option>
+                {% endif %}
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label" id="reasonLabel">Adjudication Notes / Reason</label>
+              <textarea class="form-control" rows="4" id="adjudicationNotes" name="note"
+                placeholder="Enter decision justification notes..." required></textarea>
+            </div>
+
+            {% if claim.status in ('submitted', 'under_review', 'approved') %}
+            <button type="submit" id="saveAdjudicationBtn" class="btn btn-primary w-100 py-3">
+              <i class="bi bi-save-fill me-2"></i>Save Adjudication Verdict</button>
+            {% else %}
+            <button type="button" class="btn btn-secondary w-100 py-3" disabled>
+              <i class="bi bi-lock-fill me-2"></i>Claim is Finalized ({{ claim.status }})</button>
+            {% endif %}
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="container-fluid bg-dark footer mt-5 pt-5">
+    <div class="container py-5">
+      <div class="row g-5">
+        <div class="col-lg-6 col-md-6">
+          <h1 class="text-white mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor"
+              class="bi bi-shield-shaded text-white me-3 align-middle" viewBox="0 0 16 16">
+              <path
+                d="M8 14.933a1 1 0 0 0 .1-.063l.1-.064a5 5 0 0 0 1.254-1.562C10.22 11.83 10.5 9.779 10.5 8c0-1.85-.295-3.69-.74-5.064a3 3 0 0 0-.256-.563l-.096-.16a1 1 0 0 0-.107-.123C9.07 1.832 8.522 1.5 8 1.5v13.433zM8 0c-.69 0-1.843.268-2.9.76a4 4 0 0 0-1.61 1.777C3.07 3.905 2.5 5.86 2.5 8c0 2.45.626 4.7 1.528 6.166A4 4 0 0 0 5.61 15.9c1.077.5 2.124.6 2.39.6.266 0 1.313-.1 2.39-.6a4 4 0 0 0 1.58-1.734c.902-1.467 1.528-3.717 1.528-6.166 0-2.14-.57-4.095-1.99-5.463A4 4 0 0 0 8.001 0z" />
+            </svg>Insure
+          </h1>
+          <p>Adjudication review system. Audit-logged status changes and automatic payout processing.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+    crossorigin="anonymous"></script>
+  <script src="/static/scripts.js"></script>
+</body>
+
+</html>

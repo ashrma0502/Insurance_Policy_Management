@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Admin Dashboard - Insure Insurance Policy Management</title>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+  <div id="spinner"
+    class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
+    <div class="spinner-grow text-primary" role="status"></div>
+  </div>
+
+  <div class="container-fluid py-5 px-4 px-lg-5">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-5 pb-3 border-bottom">
+      <div class="d-flex align-items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor"
+          class="bi bi-shield-shaded text-primary me-2 align-middle" viewBox="0 0 16 16">
+          <path
+            d="M8 14.933a1 1 0 0 0 .1-.063l.1-.064a5 5 0 0 0 1.254-1.562C10.22 11.83 10.5 9.779 10.5 8c0-1.85-.295-3.69-.74-5.064a3 3 0 0 0-.256-.563l-.096-.16a1 1 0 0 0-.107-.123C9.07 1.832 8.522 1.5 8 1.5v13.433zM8 0c-.69 0-1.843.268-2.9.76a4 4 0 0 0-1.61 1.777C3.07 3.905 2.5 5.86 2.5 8c0 2.45.626 4.7 1.528 6.166A4 4 0 0 0 5.61 15.9c1.077.5 2.124.6 2.39.6.266 0 1.313-.1 2.39-.6a4 4 0 0 0 1.58-1.734c.902-1.467 1.528-3.717 1.528-6.166 0-2.14-.57-4.095-1.99-5.463A4 4 0 0 0 8.001 0z" />
+        </svg>
+        <span class="fs-4 fw-bold text-dark me-3">Insure Policy Portal</span>
+        <span class="badge bg-light text-primary border border-primary px-3 py-2"><i
+            class="bi bi-shield-lock-fill me-2"></i>Admin Dashboard &mdash; {{ session.username }}</span>
+      </div>
+      <div>
+        <a href="/logout" class="btn btn-danger btn-sm"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-4 mb-5">
+      <div class="col-md-4">
+        <div class="card card-stat p-4 bg-light border-start border-primary border-5">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <h6 class="text-uppercase text-muted mb-2 small">Premiums Due / Overdue</h6>
+              <h3 class="mb-0">₹{{ "%.2f"|format(premiums_due) }}</h3>
+              <span class="text-success small"><i class="bi bi-receipt-cutoff me-1"></i>Pending &amp; overdue
+                installments</span>
+            </div>
+            <div class="fs-1 text-primary"><i class="bi bi-receipt-cutoff"></i></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card card-stat p-4 bg-light border-start border-warning border-5">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <h6 class="text-uppercase text-muted mb-2 small">Pending Claims</h6>
+              <h3 class="mb-0">{{ pending_claims }}</h3>
+              <span class="text-warning small"><i class="bi bi-clock-fill me-1"></i>Awaiting adjudication</span>
+            </div>
+            <div class="fs-1 text-warning"><i class="bi bi-hourglass-split"></i></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card card-stat p-4 bg-light border-start border-success border-5">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <h6 class="text-uppercase text-muted mb-2 small">Active Policies Count</h6>
+              <h3 class="mb-0">{{ active_policies }}</h3>
+              <span class="text-success small"><i class="bi bi-shield-fill me-1"></i>Currently active</span>
+            </div>
+            <div class="fs-1 text-success"><i class="bi bi-folder2-open"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <!-- Sidebar -->
+      <div class="col-lg-3">
+        <div class="card p-3 shadow-sm border-0 bg-light">
+          <h5 class="mb-3 px-2 text-primary">Management Menu</h5>
+          <div class="nav flex-column nav-pills" id="adminTab" role="tablist">
+            <button class="nav-link active text-start mb-2" id="v-overview-tab" data-bs-toggle="pill"
+              data-bs-target="#v-overview" type="button" role="tab"><i
+                class="bi bi-pie-chart-fill me-2"></i>Overview</button>
+            <button class="nav-link text-start mb-2" id="v-policytypes-tab" data-bs-toggle="pill"
+              data-bs-target="#v-policytypes" type="button" role="tab"><i class="bi bi-sliders me-2"></i>Policy Types
+              CRUD</button>
+            <button class="nav-link text-start mb-2" id="v-issuepolicy-tab" data-bs-toggle="pill"
+              data-bs-target="#v-issuepolicy" type="button" role="tab"><i class="bi bi-plus-circle-fill me-2"></i>Issue
+              Policy</button>
+            <button class="nav-link text-start mb-2" id="v-claims-tab" data-bs-toggle="pill" data-bs-target="#v-claims"
+              type="button" role="tab"><i class="bi bi-hammer me-2"></i>Claim Adjudication</button>
+            <button class="nav-link text-start mb-2" id="v-premiums-tab" data-bs-toggle="pill"
+              data-bs-target="#v-premiums" type="button" role="tab"><i class="bi bi-cash-stack me-2"></i>Premiums
+              Ledger</button>
+            <button class="nav-link text-start mb-2" id="v-people-tab" data-bs-toggle="pill"
+              data-bs-target="#v-people" type="button" role="tab"><i class="bi bi-people-fill me-2"></i>People</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="col-lg-9">
+        <div class="tab-content" id="adminTabContent">
+
+          <!-- OVERVIEW TAB -->
+          <div class="tab-pane fade show active" id="v-overview" role="tabpanel">
+            <div class="card p-4 shadow-sm border-0">
+              <h4 class="mb-4 text-dark"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Underwriting Operations
+                Overview</h4>
+              <div class="row g-4 mb-4">
+                <div class="col-md-6">
+                  <div class="p-3 border rounded">
+                    <h6 class="text-primary"><i class="bi bi-info-circle-fill me-2"></i>Active Policies Breakdown</h6>
+                    <ul class="list-group list-group-flush mt-2">
+                      {% for row in breakdown %}
+                      <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ row.name }}
+                        <span class="badge bg-primary rounded-pill">{{ row.cnt }}</span>
+                      </li>
+                      {% else %}
+                      <li class="list-group-item text-muted">No active policies.</li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="p-3 border rounded">
+                    <h6 class="text-primary"><i class="bi bi-bell-fill me-2"></i>Recent System Activity</h6>
+                    <div class="timeline-small mt-2 small">
+                      {% for act in recent_activity %}
+                      <div class="mb-2">
+                        <span class="text-muted">{{ act.created_at.strftime('%Y-%m-%d %H:%M') }}:</span>
+                        Claim <strong>{{ act.claim_number }}</strong> &mdash; {{ act.note }}
+                      </div>
+                      {% else %}
+                      <p class="text-muted">No recent activity.</p>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Overdue Reminders -->
+              {% if overdue %}
+              <div class="border rounded p-3">
+                <h6 class="text-primary mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>Urgent Reminders
+                  (Overdue Premiums)</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover align-middle">
+                    <thead>
+                      <tr>
+                        <th>Policy No.</th>
+                        <th>Policyholder</th>
+                        <th>Due Date</th>
+                        <th>Amount</th>
+                        <th>Days Overdue</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in overdue %}
+                      <tr class="table-danger">
+                        <td>{{ row.policy_number }}</td>
+                        <td>{{ row.holder_name }}</td>
+                        <td>{{ row.due_date }}</td>
+                        <td>₹{{ "%.2f"|format(row.amount) }}</td>
+                        <td>{{ row.days_overdue }} days</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- POLICY TYPES TAB -->
+          <div class="tab-pane fade" id="v-policytypes" role="tabpanel">
+            <div class="card p-4 shadow-sm border-0">
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0 text-dark"><i class="bi bi-sliders text-primary me-2"></i>Policy Types Catalogue</h4>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#addPolicyTypeForm">
+                  <i class="bi bi-plus-lg me-1"></i>Create Policy Type</button>
+              </div>
+
+              <div class="collapse mb-4" id="addPolicyTypeForm">
+                <div class="card card-body border p-4 bg-light">
+                  <h5 class="mb-3">Define New Policy Type</h5>
+                  <form method="POST" action="/admin/add-policy-type">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Policy Name</label>
+                        <input type="text" name="name" class="form-control form-control-sm"
+                          placeholder="e.g. Comprehensive Motor Plus" required />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Coverage Category</label>
+                        <select name="coverage_category" class="form-select form-select-sm" required>
+                          <option value="Life">Life</option>
+                          <option value="Health">Health</option>
+                          <option value="Motor">Motor</option>
+                          <option value="Property">Property</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Base Annual Premium (₹)</label>
+                        <input type="number" step="0.01" min="1" name="base_annual_premium"
+                          class="form-control form-control-sm" placeholder="e.g. 1200.00" required />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Max Sum Assured / Coverage Limit (₹)</label>
+                        <input type="number" step="0.01" min="1" name="max_coverage_amount"
+                          class="form-control form-control-sm" placeholder="e.g. 5000000.00" required />
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Min Term (Years)</label>
+                        <input type="number" min="1" max="99" name="min_term_years" class="form-control form-control-sm"
+                          placeholder="e.g. 1" required />
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Max Term (Years)</label>
+                        <input type="number" min="1" max="99" name="max_term_years" class="form-control form-control-sm"
+                          placeholder="e.g. 30" required />
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Grace Period (Days)</label>
+                        <input type="number" min="0" max="90" name="grace_period_days"
+                          class="form-control form-control-sm" placeholder="e.g. 30" required />
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">Description / Coverage Summary</label>
+                        <textarea name="description" class="form-control form-control-sm" rows="2"
+                          placeholder="Detail coverage features, deductibles, and benefits..."></textarea>
+                      </div>
+                      <div class="col-12 text-end">
+                        <button type="button" class="btn btn-secondary btn-sm me-2" data-bs-toggle="collapse"
+                          data-bs-target="#addPolicyTypeForm">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm">Save Type</button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>ID</th>
+                      <th>Name</th>
+                      <th>Category</th>
+                      <th>Base Premium</th>
+                      <th>Max Sum Assured</th>
+                      <th>Term (Min-Max)</th>
+                      <th>Grace</th>
+                      <th>Status</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for pt in policy_types %}
+                    <tr>
+                      <td>{{ pt.id }}</td>
+                      <td><strong>{{ pt.name }}</strong></td>
+                      <td><span class="badge bg-info text-dark">{{ pt.coverage_category }}</span></td>
+                      <td>₹{{ "%.2f"|format(pt.base_annual_premium) }} / yr</td>
+                      <td>₹{{ "%.2f"|format(pt.max_coverage_amount) }}</td>
+                      <td>{{ pt.min_term_years }}-{{ pt.max_term_years }} yrs</td>
+                      <td>{{ pt.grace_period_days }} days</td>
+                      <td><span class="badge {{ 'bg-success' if pt.is_active else 'bg-secondary' }}">{{ 'Active' if
+                          pt.is_active else 'Inactive' }}</span></td>
+                      <td>{{ pt.description or '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                      <td colspan="5" class="text-center text-muted">No policy types defined.</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ISSUE POLICY TAB -->
+          <div class="tab-pane fade" id="v-issuepolicy" role="tabpanel">
+            <div class="card p-4 shadow-sm border-0">
+              <h4 class="mb-4 text-dark"><i class="bi bi-plus-circle-fill text-primary me-2"></i>Issue Policy to
+                Customer</h4>
+              <div class="row">
+                <div class="col-lg-6">
+                  <form id="issuePolicyForm" method="POST" action="/admin/issue-policy">
+                    <div class="mb-3">
+                      <label class="form-label">Select Policyholder</label>
+                      <select class="form-select" name="policyholder_id" id="policyholderSelect" required>
+                        {% for ph in all_policyholders %}
+                        <option value="{{ ph.id }}">{{ ph.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Assign Agent (Optional)</label>
+                      <select class="form-select" name="agent_id">
+                        <option value="">— No Agent —</option>
+                        {% for ag in all_agents %}
+                        <option value="{{ ag.id }}">{{ ag.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Select Policy Type</label>
+                      <select class="form-select" name="policy_type_id" id="policytypeSelect"
+                        onchange="updatePremiumPreview()" required>
+                        {% for pt in policy_types %}
+                        <option value="{{ pt.id }}" data-premium="{{ pt.base_annual_premium }}"
+                          data-max-coverage="{{ pt.max_coverage_amount }}" data-min-term="{{ pt.min_term_years }}"
+                          data-max-term="{{ pt.max_term_years }}">
+                          {{ pt.name }} (Base: ₹{{ "%.2f"|format(pt.base_annual_premium) }} / yr | Cover: ₹{{
+                          "%.2f"|format(pt.max_coverage_amount) }})
+                        </option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="row g-3 mb-3">
+                      <div class="col-6">
+                        <label class="form-label">Term (Years)</label>
+                        <select class="form-select" name="term_years" id="policyTerm" onchange="updatePremiumPreview()"
+                          required>
+                          <option value="1">1 Year</option>
+                          <option value="2">2 Years</option>
+                          <option value="3">3 Years</option>
+                          <option value="5">5 Years</option>
+                        </select>
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-control" name="start_date" id="policyStartDate"
+                          value="{{ today }}" onchange="updatePremiumPreview()" required />
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Annual Premium (₹)</label>
+                      <input type="number" class="form-control" name="annual_premium" id="annualPremiumVal" value=""
+                        onchange="updatePremiumPreview()" required />
+                      <div class="form-text">Adjust base premium if needed.</div>
+                    </div>
+                    <div class="mb-4">
+                      <label class="form-label">Sum Assured / Coverage Amount (₹)</label>
+                      <input type="number" step="0.01" min="1" class="form-control" name="sum_assured"
+                        id="sumAssuredVal" placeholder="e.g. 500000.00" required />
+                      <div class="form-text">The total insured amount payable on a valid claim.</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                      <button type="button" onclick="generatePremiumPreview()" class="btn btn-secondary flex-grow-1">
+                        <i class="bi bi-eye-fill me-2"></i>Preview Schedule</button>
+                      <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="bi bi-check-circle-fill me-2"></i>Issue Policy</button>
+                    </div>
+                  </form>
+                </div>
+                <div class="col-lg-6 mt-4 mt-lg-0">
+                  <div class="border rounded p-4 bg-light h-100 d-flex flex-column">
+                    <h5 class="border-bottom pb-2 mb-3 text-dark"><i
+                        class="bi bi-calendar-event-fill text-primary me-2"></i>Premium Schedule Preview</h5>
+                    <div class="flex-grow-1 overflow-auto" style="max-height: 320px;" id="previewContainer">
+                      <div class="text-center text-muted py-5">
+                        <i class="bi bi-calendar-x-fill fs-2 mb-2 d-block"></i>
+                        Fill the form and click "Preview Schedule" to auto-generate the schedule.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CLAIM ADJUDICATION TAB -->
+          <div class="tab-pane fade" id="v-claims" role="tabpanel">
+            <div class="card p-4 shadow-sm border-0">
+              <h4 class="mb-4 text-dark"><i class="bi bi-hammer text-primary me-2"></i>Pending and Recent Claims</h4>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Claim No.</th>
+                      <th>Policyholder</th>
+                      <th>Policy</th>
+                      <th>Incident Date</th>
+                      <th>Requested</th>
+                      <th>Status</th>
+                      <th>Submitted At</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for c in claims %}
+                    {% set badge = {
+                    'submitted': 'bg-warning text-dark',
+                    'under_review': 'bg-info text-dark',
+                    'approved': 'bg-success',
+                    'rejected': 'bg-danger',
+                    'paid': 'bg-success'
+                    } %}
+                    <tr>
+                      <td><strong>{{ c.claim_number }}</strong></td>
+                      <td>{{ c.holder_name }}</td>
+                      <td>{{ c.policy_number }} ({{ c.policy_type }})</td>
+                      <td>{{ c.incident_date }}</td>
+                      <td><strong>₹{{ "%.2f"|format(c.amount_requested) }}</strong></td>
+                      <td><span class="badge {{ badge.get(c.status, 'bg-secondary') }} badge-custom">{{ c.status
+                          }}</span></td>
+                      <td>{{ c.submitted_at.strftime('%Y-%m-%d') }}</td>
+                      <td>
+                        <a href="/adjudicate?id={{ c.id }}" class="btn btn-sm btn-primary py-1 px-3">
+                          {% if c.status in ('submitted', 'under_review') %}Adjudicate{% else %}View Log{% endif %}
+                        </a>
+                      </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                      <td colspan="8" class="text-center text-muted py-3">No claims found.</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- PREMIUMS LEDGER TAB -->
+          <div class="tab-pane fade" id="v-premiums" role="tabpanel">
+            <div class="card p-4 shadow-sm border-0">
+              <h4 class="mb-4 text-dark"><i class="bi bi-cash-stack text-primary me-2"></i>Premiums Ledger</h4>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Policy</th>
+                      <th>Installment #</th>
+                      <th>Due Date</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Policyholder</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for ps in premiums %}
+                    {% set row_class = 'table-danger' if ps.status == 'overdue' else ('table-success' if ps.status ==
+                    'paid' else '') %}
+                    {% set badge_class = 'bg-danger' if ps.status == 'overdue' else ('bg-success' if ps.status == 'paid'
+                    else 'bg-warning text-dark') %}
+                    <tr class="{{ row_class }}">
+                      <td><strong>{{ ps.policy_number }}</strong></td>
+                      <td>Installment #{{ ps.installment_number }}</td>
+                      <td>{{ ps.due_date }}</td>
+                      <td>₹{{ "%.2f"|format(ps.amount) }}</td>
+                      <td><span class="badge {{ badge_class }}">{{ ps.status }}</span></td>
+                      <td>{{ ps.holder_name }}</td>
+                      <td>
+                        {% if ps.status != 'paid' %}
+                        <form method="POST" action="/admin/collect-premium" style="display:inline">
+                          <input type="hidden" name="installment_id" value="{{ ps.id }}">
+                          <button type="submit" class="btn btn-sm btn-success py-1 px-2">
+                            <i class="bi bi-check-lg"></i> Collect</button>
+                        </form>
+                        {% else %}
+                        <button class="btn btn-sm btn-outline-secondary py-1 px-2" disabled>Paid</button>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                      <td colspan="7" class="text-center text-muted py-3">No premiums recorded yet.</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- PEOPLE TAB -->
+          <div class="tab-pane fade" id="v-people" role="tabpanel">
+            <div class="card p-4 shadow-sm border-0">
+
+              <!-- Agents header + Create Agent button -->
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0 text-dark"><i class="bi bi-person-badge-fill text-info me-2"></i>Agents</h4>
+                <button class="btn btn-info btn-sm text-white" data-bs-toggle="collapse" data-bs-target="#createAgentForm">
+                  <i class="bi bi-person-plus-fill me-1"></i>Create New Agent
+                </button>
+              </div>
+
+              <!-- Create Agent collapsible form -->
+              <div class="collapse mb-4" id="createAgentForm">
+                <div class="card card-body border p-4 bg-light">
+                  <h5 class="mb-3">New Agent Details</h5>
+                  <form method="POST" action="/admin/create-agent">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" name="name" class="form-control form-control-sm" placeholder="e.g. Priya Mehta" required />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control form-control-sm" placeholder="e.g. pmehta" required />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-control form-control-sm" placeholder="Set initial password" required />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Phone</label>
+                        <input type="text" name="phone" class="form-control form-control-sm" placeholder="e.g. 9876543210" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control form-control-sm" placeholder="e.g. pmehta@insure.in" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Commission Rate (%)</label>
+                        <input type="number" step="0.01" min="0" max="100" name="commission_rate"
+                          class="form-control form-control-sm" value="5.00" required />
+                      </div>
+                      <div class="col-12 text-end">
+                        <button type="button" class="btn btn-secondary btn-sm me-2"
+                          data-bs-toggle="collapse" data-bs-target="#createAgentForm">Cancel</button>
+                        <button type="submit" class="btn btn-info btn-sm text-white">
+                          <i class="bi bi-check-circle-fill me-1"></i>Create Agent
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <!-- Agent cards -->
+              <div class="row g-4 mb-5">
+                {% for ag in all_agents_full %}
+                {% set initials = ag.name.split()[0][0] ~ (ag.name.split()[-1][0] if ag.name.split()|length > 1 else '') %}
+                <div class="col-md-4 col-lg-3">
+                  <div class="card border-0 shadow-sm text-center p-3 h-100">
+                    {% if ag.picture %}
+                    <img src="/static/{{ ag.picture }}" alt="{{ ag.name }}"
+                      class="rounded-circle mx-auto mb-3 object-fit-cover"
+                      style="width:80px;height:80px;border:3px solid #0d6efd;">
+                    {% else %}
+                    <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center fw-bold text-white"
+                      style="width:80px;height:80px;background:linear-gradient(135deg,#0d6efd,#6610f2);font-size:1.4rem;">
+                      {{ initials | upper }}
+                    </div>
+                    {% endif %}
+                    <h6 class="mb-1 fw-bold">{{ ag.name }}</h6>
+                    <span class="badge bg-info text-dark mb-1">Agent</span>
+                    <p class="text-muted small mb-1">{{ ag.email or '—' }}</p>
+                    <p class="text-muted small mb-2">{{ ag.phone or '—' }}</p>
+                    <p class="small mb-3"><i class="bi bi-cash-coin text-success me-1"></i>{{ ag.commission_rate }}% commission</p>
+                    <form method="POST" action="/admin/upload-picture" enctype="multipart/form-data">
+                      <input type="hidden" name="user_type" value="agent">
+                      <input type="hidden" name="user_id" value="{{ ag.id }}">
+                      <label class="btn btn-outline-primary btn-sm w-100 mb-0">
+                        <i class="bi bi-camera-fill me-1"></i>{{ 'Change' if ag.picture else 'Upload' }} Photo
+                        <input type="file" name="picture" accept="image/jpeg,image/png,image/webp"
+                          class="d-none" onchange="this.form.submit()">
+                      </label>
+                    </form>
+                  </div>
+                </div>
+                {% else %}
+                <div class="col-12"><p class="text-muted">No agents found. Create one above.</p></div>
+                {% endfor %}
+              </div>
+
+              <!-- Policyholders section -->
+              <div class="d-flex justify-content-between align-items-center mb-4 border-top pt-4">
+                <h4 class="mb-0 text-dark"><i class="bi bi-person-fill text-success me-2"></i>Policyholders</h4>
+                <button class="btn btn-success btn-sm" data-bs-toggle="collapse" data-bs-target="#createPolicyholderForm">
+                  <i class="bi bi-person-plus-fill me-1"></i>Create New Policyholder
+                </button>
+              </div>
+
+              <!-- Create Policyholder collapsible form -->
+              <div class="collapse mb-4" id="createPolicyholderForm">
+                <div class="card card-body border p-4 bg-light">
+                  <h5 class="mb-3">New Policyholder Details</h5>
+                  <form method="POST" action="/admin/create-policyholder">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" name="name" class="form-control form-control-sm" placeholder="e.g. Riya Kapoor" required />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control form-control-sm" placeholder="e.g. rkapoor" required />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-control form-control-sm" placeholder="Set initial password" required />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Phone</label>
+                        <input type="text" name="phone" class="form-control form-control-sm" placeholder="e.g. 9876543210" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control form-control-sm" placeholder="e.g. riya@email.com" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Date of Birth</label>
+                        <input type="date" name="date_of_birth" class="form-control form-control-sm" />
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">Address</label>
+                        <textarea name="address" class="form-control form-control-sm" rows="2" placeholder="Full residential address"></textarea>
+                      </div>
+                      <div class="col-12 text-end">
+                        <button type="button" class="btn btn-secondary btn-sm me-2"
+                          data-bs-toggle="collapse" data-bs-target="#createPolicyholderForm">Cancel</button>
+                        <button type="submit" class="btn btn-success btn-sm">
+                          <i class="bi bi-check-circle-fill me-1"></i>Create Policyholder
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div class="row g-4 mb-5">
+                {% for ph in all_policyholders_full %}
+                {% set initials = ph.name.split()[0][0] ~ (ph.name.split()[-1][0] if ph.name.split()|length > 1 else '') %}
+                <div class="col-md-4 col-lg-3">
+                  <div class="card border-0 shadow-sm text-center p-3 h-100">
+                    {% if ph.picture %}
+                    <img src="/static/{{ ph.picture }}" alt="{{ ph.name }}"
+                      class="rounded-circle mx-auto mb-3 object-fit-cover"
+                      style="width:80px;height:80px;border:3px solid #198754;">
+                    {% else %}
+                    <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center fw-bold text-white"
+                      style="width:80px;height:80px;background:linear-gradient(135deg,#198754,#20c997);font-size:1.4rem;">
+                      {{ initials | upper }}
+                    </div>
+                    {% endif %}
+                    <h6 class="mb-1 fw-bold">{{ ph.name }}</h6>
+                    <span class="badge bg-success mb-1">Policyholder</span>
+                    <p class="text-muted small mb-1">{{ ph.email or '—' }}</p>
+                    <p class="text-muted small mb-2">{{ ph.phone or '—' }}</p>
+                    <span class="badge {{ 'bg-success' if ph.is_active else 'bg-secondary' }} mb-3">
+                      {{ 'Active' if ph.is_active else 'Inactive' }}
+                    </span>
+                    <form method="POST" action="/admin/upload-picture" enctype="multipart/form-data">
+                      <input type="hidden" name="user_type" value="policyholder">
+                      <input type="hidden" name="user_id" value="{{ ph.id }}">
+                      <label class="btn btn-outline-success btn-sm w-100 mb-0">
+                        <i class="bi bi-camera-fill me-1"></i>{{ 'Change' if ph.picture else 'Upload' }} Photo
+                        <input type="file" name="picture" accept="image/jpeg,image/png,image/webp"
+                          class="d-none" onchange="this.form.submit()">
+                      </label>
+                    </form>
+                  </div>
+                </div>
+                {% else %}
+                <div class="col-12"><p class="text-muted">No policyholders found.</p></div>
+                {% endfor %}
+              </div>
+
+              <!-- Agent Assignment section -->
+              <h4 class="mb-3 text-dark border-top pt-4">
+                <i class="bi bi-person-lines-fill text-warning me-2"></i>Agent Assignment
+              </h4>
+              <p class="text-muted small mb-3">Change which agent manages each policy. Select a new agent from the dropdown — it saves immediately.</p>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Policy Number</th>
+                      <th>Policyholder</th>
+                      <th>Status</th>
+                      <th>Current Agent</th>
+                      <th>Reassign Agent</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for pol in all_policies_assign %}
+                    {% set sbadge = {'active':'bg-success','lapsed':'bg-secondary','cancelled':'bg-danger','expired':'bg-warning text-dark'} %}
+                    <tr>
+                      <td><strong>{{ pol.policy_number }}</strong></td>
+                      <td>{{ pol.policyholder_name }}</td>
+                      <td><span class="badge {{ sbadge.get(pol.status,'bg-secondary') }}">{{ pol.status }}</span></td>
+                      <td>{{ pol.agent_name or '— Unassigned —' }}</td>
+                      <td>
+                        <form method="POST" action="/admin/assign-agent" class="d-flex gap-2 align-items-center">
+                          <input type="hidden" name="policy_id" value="{{ pol.id }}">
+                          <select name="agent_id" class="form-select form-select-sm" style="max-width:180px;">
+                            <option value="">— No Agent —</option>
+                            {% for ag in all_agents_full %}
+                            <option value="{{ ag.id }}" {{ 'selected' if ag.id == pol.agent_id else '' }}>{{ ag.name }}</option>
+                            {% endfor %}
+                          </select>
+                          <button type="submit" class="btn btn-warning btn-sm text-dark">
+                            <i class="bi bi-check2-circle me-1"></i>Assign
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted">No policies found.</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="container-fluid bg-dark footer mt-5 pt-5">
+    <div class="container py-5">
+      <div class="row g-5">
+        <div class="col-lg-6 col-md-6">
+          <h1 class="text-white mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor"
+              class="bi bi-shield-shaded text-white me-3 align-middle" viewBox="0 0 16 16">
+              <path
+                d="M8 14.933a1 1 0 0 0 .1-.063l.1-.064a5 5 0 0 0 1.254-1.562C10.22 11.83 10.5 9.779 10.5 8c0-1.85-.295-3.69-.74-5.064a3 3 0 0 0-.256-.563l-.096-.16a1 1 0 0 0-.107-.123C9.07 1.832 8.522 1.5 8 1.5v13.433zM8 0c-.69 0-1.843.268-2.9.76a4 4 0 0 0-1.61 1.777C3.07 3.905 2.5 5.86 2.5 8c0 2.45.626 4.7 1.528 6.166A4 4 0 0 0 5.61 15.9c1.077.5 2.124.6 2.39.6.266 0 1.313-.1 2.39-.6a4 4 0 0 0 1.58-1.734c.902-1.467 1.528-3.717 1.528-6.166 0-2.14-.57-4.095-1.99-5.463A4 4 0 0 0 8.001 0z" />
+            </svg>Insure
+          </h1>
+          <p>Policy Admin panel - manage categories, issue coverage schedules, and adjudication.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+    crossorigin="anonymous"></script>
+  <script src="/static/scripts.js"></script>
+</body>
+
+</html>

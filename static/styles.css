@@ -1,0 +1,194 @@
+:root {
+  --primary: #015FC9;
+  --secondary: #0DD3F1;
+  --light: #F6F7FC;
+  --dark: #15233C;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--light);
+  color: var(--dark);
+}
+
+#spinner {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .5s ease-out, visibility 0s linear .5s;
+  z-index: 99999;
+}
+
+#spinner.show {
+  transition: opacity .5s ease-out, visibility 0s linear 0s;
+  visibility: visible;
+  opacity: 1;
+}
+
+.role-btn {
+  transition: all 0.3s ease;
+}
+
+.role-btn:hover {
+  transform: translateY(-2px);
+}
+
+.card-stat {
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.card-stat:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Login Page Specific --- */
+.login-container {
+  max-width: 500px;
+  margin: 80px auto;
+}
+
+.card-login {
+  border: none;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+/* --- Claim Adjudication Specific --- */
+.card-claim {
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.event-timeline {
+  position: relative;
+  padding-left: 30px;
+  margin-top: 15px;
+}
+
+.event-timeline::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 9px;
+  width: 2px;
+  background-color: #e0e0e0;
+}
+
+.event-item {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.event-item::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: -26px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  border: 2px solid white;
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.event-item.status-green::before {
+  background-color: #28a745;
+  box-shadow: 0 0 0 2px #28a745;
+}
+
+.event-item.status-red::before {
+  background-color: #dc3545;
+  box-shadow: 0 0 0 2px #dc3545;
+}
+
+/* --- Admin Specific --- */
+.badge-custom {
+  font-size: 0.85rem;
+  padding: 0.35em 0.65em;
+}
+
+/* --- Policy Holder Specific --- */
+.card-premium {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  border: none;
+  border-radius: 12px;
+}
+
+.timeline-steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.timeline-steps::before {
+  content: "";
+  position: absolute;
+  top: 15px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: #e0e0e0;
+  z-index: 1;
+}
+
+.timeline-step {
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  width: 25%;
+}
+
+.step-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+  border: 2px solid white;
+  transition: all 0.3s ease;
+}
+
+.timeline-step.active .step-icon {
+  background-color: var(--primary);
+}
+
+.timeline-step.completed .step-icon {
+  background-color: #28a745;
+}
+
+.timeline-step.rejected .step-icon {
+  background-color: #dc3545;
+}
+
+.step-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.timeline-step.active .step-label,
+.timeline-step.completed .step-label {
+  color: var(--dark);
+}
+
+/* --- Policy Detail Specific --- */
+.card-detail {
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}

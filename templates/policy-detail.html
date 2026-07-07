@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Policy Detail - {{ policy.policy_number }} - Insure</title>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+  <div id="spinner"
+    class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
+    <div class="spinner-grow text-primary" role="status"></div>
+  </div>
+
+  <div class="container py-5">
+    <div class="mb-4">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          {% if session.role == 'admin' %}
+          <li class="breadcrumb-item"><a href="/admin/dashboard">Admin Dashboard</a></li>
+          {% elif session.role == 'agent' %}
+          <li class="breadcrumb-item"><a href="/agent/dashboard">Agent Dashboard</a></li>
+          {% else %}
+          <li class="breadcrumb-item"><a href="/policyholder/dashboard">My Dashboard</a></li>
+          {% endif %}
+          <li class="breadcrumb-item active" aria-current="page">Policy Detail</li>
+        </ol>
+      </nav>
+    </div>
+
+    <div class="row g-4">
+      <!-- Summary Header -->
+      <div class="col-12">
+        <div class="card card-detail p-4 bg-light border-start border-primary border-5">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+            <div>
+              <span class="text-uppercase text-muted small font-weight-bold">{{ policy.coverage_category }} INSURANCE</span>
+              <h2 class="text-primary mb-1">{{ policy.policy_number }}</h2>
+              <p class="mb-0 text-muted">Issued to: <strong>{{ policy.holder_name }}</strong> | Managed by:
+                <strong>{{ policy.agent_name or '—' }}</strong></p>
+            </div>
+            <div class="mt-3 mt-md-0">
+              {% set status_badge = 'bg-success' if policy.status == 'active' else ('bg-secondary' if policy.status == 'expired' else 'bg-danger') %}
+              <span class="badge {{ status_badge }} fs-5 px-3 py-2">{{ policy.status | capitalize }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Left: Detail Tabs -->
+      <div class="col-lg-8">
+        <div class="card card-detail p-4">
+          <ul class="nav nav-tabs mb-4" id="policyDetailTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule-pane"
+                type="button" role="tab"><i class="bi bi-calendar-event-fill me-2"></i>Premium Schedule</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="claims-tab" data-bs-toggle="tab" data-bs-target="#claims-pane"
+                type="button" role="tab"><i class="bi bi-file-earmark-medical-fill me-2"></i>Claims History</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="coverage-tab" data-bs-toggle="tab" data-bs-target="#coverage-pane"
+                type="button" role="tab"><i class="bi bi-shield-fill me-2"></i>Coverage Details</button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <!-- Premium Schedule -->
+            <div class="tab-pane fade show active" id="schedule-pane" role="tabpanel">
+              <div class="alert alert-info small mb-3">
+                <i class="bi bi-info-circle-fill me-2"></i>Paid installments are locked to prevent duplicate payments.
+              </div>
+              <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle">
+                  <thead>
+                    <tr>
+                      <th>Inst #</th>
+                      <th>Due Date</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Paid At</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for inst in installments %}
+                    {% set badge = 'bg-success' if inst.status == 'paid' else ('bg-danger' if inst.status == 'overdue' else 'bg-warning text-dark') %}
+                    <tr>
+                      <td>{{ inst.installment_number }}</td>
+                      <td>{{ inst.due_date }}</td>
+                      <td>₹{{ "%.2f"|format(inst.amount) }}</td>
+                      <td><span class="badge {{ badge }}">{{ inst.status }}</span></td>
+                      <td>{{ inst.paid_at.strftime('%Y-%m-%d %H:%M') if inst.paid_at else '—' }}</td>
+                      <td>
+                        {% if inst.status != 'paid' and session.role == 'policyholder' %}
+                        <form method="POST" action="/policy/pay-installment" style="display:inline">
+                          <input type="hidden" name="installment_id" value="{{ inst.id }}">
+                          <input type="hidden" name="policy_id" value="{{ policy.id }}">
+                          <button type="submit" class="btn btn-sm btn-success py-0 px-2">
+                            <i class="bi bi-credit-card-2-front-fill"></i> Pay</button>
+                        </form>
+                        {% elif inst.status == 'paid' %}
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" disabled>
+                          <i class="bi bi-check-lg"></i> Paid</button>
+                        {% else %}
+                        <span class="text-muted small">—</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-3">No installments found.</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Claims History -->
+            <div class="tab-pane fade" id="claims-pane" role="tabpanel">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th>Claim No.</th>
+                      <th>Incident Date</th>
+                      <th>Requested</th>
+                      <th>Approved</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for c in claims %}
+                    {% set badge = {
+                      'submitted': 'bg-warning text-dark',
+                      'under_review': 'bg-info text-dark',
+                      'approved': 'bg-success',
+                      'rejected': 'bg-danger',
+                      'paid': 'bg-success'
+                    } %}
+                    <tr>
+                      <td><strong>{{ c.claim_number }}</strong></td>
+                      <td>{{ c.incident_date }}</td>
+                      <td>₹{{ "%.2f"|format(c.amount_requested) }}</td>
+                      <td>₹{{ "%.2f"|format(c.amount_approved) }}</td>
+                      <td><span class="badge {{ badge.get(c.status, 'bg-secondary') }}">{{ c.status }}</span></td>
+                      <td>
+                        {% if session.role in ('admin', 'agent') %}
+                        <a href="/adjudicate?id={{ c.id }}" class="btn btn-sm btn-outline-secondary py-0 px-2">View</a>
+                        {% else %}
+                        <span class="text-muted small">—</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-3">No claims submitted against this policy.</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+              <!-- Coverage Details -->
+              <div class="tab-pane fade" id="coverage-pane" role="tabpanel">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="border rounded p-3 bg-light">
+                      <span class="text-muted small d-block">Base Annual Premium</span>
+                      <h5>₹{{ "%.2f"|format(policy.annual_premium) }} / Year</h5>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="border rounded p-3 bg-success text-white">
+                      <span class="small d-block opacity-75">Sum Assured (Coverage Amount)</span>
+                      <h5 class="mb-0">₹{{ "%.2f"|format(policy.sum_assured) }}</h5>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="border rounded p-3 bg-light">
+                      <span class="text-muted small d-block">Coverage Category</span>
+                      <h5>{{ policy.coverage_category }}</h5>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="border rounded p-3 bg-light">
+                      <span class="text-muted small d-block">Grace Period</span>
+                      <h5>{{ policy.grace_period_days }} Days</h5>
+                    </div>
+                  </div>
+                  <div class="col-12">
+                    <div class="border rounded p-3 bg-light">
+                      <span class="text-muted small d-block">Policy Type Description</span>
+                      <p class="mb-0">{{ policy.type_description or '—' }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Nominations -->
+              <div class="tab-pane fade" id="nominations-pane" role="tabpanel">
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle">
+                    <thead>
+                      <tr>
+                        <th>Nominee Name</th>
+                        <th>Relationship</th>
+                        <th>Share %</th>
+                        <th>Contact</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for n in nominations %}
+                      <tr>
+                        <td><strong>{{ n.nominee_name }}</strong></td>
+                        <td>{{ n.relationship }}</td>
+                        <td><span class="badge bg-primary">{{ n.share_percent }}%</span></td>
+                        <td>{{ n.contact_phone or '—' }}</td>
+                      </tr>
+                      {% else %}
+                      <tr>
+                        <td colspan="4" class="text-center text-muted py-3">No nominees declared for this policy.</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right: Metadata -->
+      <div class="col-lg-4">
+        <div class="card card-detail p-4 bg-light">
+          <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-info-circle-fill text-primary me-2"></i>Policy Information</h5>
+          <div class="mb-3">
+            <span class="text-muted small d-block">Policy Type</span>
+            <strong>{{ policy.policy_type }}</strong>
+          </div>
+          <div class="mb-3">
+            <span class="text-muted small d-block">Sum Assured</span>
+            <strong class="text-success">₹{{ "%.2f"|format(policy.sum_assured) }}</strong>
+          </div>
+          <div class="mb-3">
+            <span class="text-muted small d-block">Policy Term</span>
+            <strong>{{ policy.term_years }} Year{{ 's' if policy.term_years != 1 else '' }}</strong>
+          </div>
+          <div class="mb-3">
+            <span class="text-muted small d-block">Effective Date</span>
+            <strong>{{ policy.start_date }}</strong>
+          </div>
+          <div class="mb-3">
+            <span class="text-muted small d-block">Expiration Date</span>
+            <strong>{{ policy.end_date }}</strong>
+          </div>
+          <div class="mb-3">
+            <span class="text-muted small d-block">Grace Period</span>
+            <strong>{{ policy.grace_period_days }} Days</strong>
+          </div>
+          <div class="mb-3">
+            <span class="text-muted small d-block">Issued At</span>
+            <span>{{ policy.issued_at.strftime('%Y-%m-%d') if policy.issued_at else '—' }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="container-fluid bg-dark footer mt-5 pt-5">
+    <div class="container py-5">
+      <div class="row g-5">
+        <div class="col-lg-6 col-md-6">
+          <h1 class="text-white mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor"
+              class="bi bi-shield-shaded text-white me-3 align-middle" viewBox="0 0 16 16">
+              <path
+                d="M8 14.933a1 1 0 0 0 .1-.063l.1-.064a5 5 0 0 0 1.254-1.562C10.22 11.83 10.5 9.779 10.5 8c0-1.85-.295-3.69-.74-5.064a3 3 0 0 0-.256-.563l-.096-.16a1 1 0 0 0-.107-.123C9.07 1.832 8.522 1.5 8 1.5v13.433zM8 0c-.69 0-1.843.268-2.9.76a4 4 0 0 0-1.61 1.777C3.07 3.905 2.5 5.86 2.5 8c0 2.45.626 4.7 1.528 6.166A4 4 0 0 0 5.61 15.9c1.077.5 2.124.6 2.39.6.266 0 1.313-.1 2.39-.6a4 4 0 0 0 1.58-1.734c.902-1.467 1.528-3.717 1.528-6.166 0-2.14-.57-4.095-1.99-5.463A4 4 0 0 0 8.001 0z" />
+            </svg>Insure
+          </h1>
+          <p>Insurance Policy Detailed ledger displaying premium schedules and historical claims.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+    crossorigin="anonymous"></script>
+  <script src="/static/scripts.js"></script>
+</body>
+
+</html>
