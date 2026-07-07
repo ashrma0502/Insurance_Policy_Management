@@ -5,8 +5,8 @@ def get_connection():
     try:
         conn = m.connect(
             host='localhost',
-            user='ayush',
-            password='Techno@blast',
+            user='your_username',
+            password='your_password',
             database='insurance_policy_management'
         )
         return conn
