@@ -1,0 +1,26 @@
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ─── Virtual Environment (venv/) ──────────────────────────────────────────────
+venv/
+
+# ─── User-Uploaded Profile Pictures ──────────────────────────────────────────
+# Keep the directory structure but ignore actual image uploads
+static/uploads/agents/*
+static/uploads/policyholders/*
+
+# Allow .gitkeep placeholder files so empty dirs are tracked
+!static/uploads/agents/.gitkeep
+!static/uploads/policyholders/.gitkeep
+
+# ─── OS Files ─────────────────────────────────────────────────────────────────
+.DS_Storetemplates
+Thumbs.db
+
+# ─── IDE / Editor ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
