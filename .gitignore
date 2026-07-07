@@ -7,10 +7,7 @@ __pycache__/
 venv/
 
 # User-uploaded profile pictures — not source code, ignored but dirs kept
-static/uploads/agents/*
-static/uploads/policyholders/*
-!static/uploads/agents/.gitkeep
-!static/uploads/policyholders/.gitkeep
+static/uploads/*
 
 # OS files
 .DS_Store
